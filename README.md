@@ -27,8 +27,10 @@ Some prompts to answer:
 - How does your `Recommender` compute a score for each song
 - How do you choose which songs to recommend
 
-You can include a simple diagram or bullet list if helpful.
 
+
+You can include a simple diagram or bullet list if helpful.
+*Each Song in the system will use genre, mood, and all numertical values. The UserProfile stores the user's favorite genre, favorite mood, target energy, and whether they like acoustic. The Reccomender computes a score for each song by assigning weights to the respective categories (genre, mood, and numerical values). The genre and mood checks are binary, either a "yes" or a "no", whereas the numeric similarity serves as the fine tuning.*
 ---
 
 ## Getting Started
