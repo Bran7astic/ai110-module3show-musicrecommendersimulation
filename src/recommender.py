@@ -1,6 +1,32 @@
 import csv
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
+from difflib import SequenceMatcher
+
+
+def _normalize_label(value: str) -> str:
+    """Normalize text for tolerant matching by removing punctuation and spacing differences."""
+    cleaned = "".join(ch for ch in value.strip().lower() if ch.isalnum() or ch.isspace())
+    return "".join(cleaned.split())
+
+
+def _is_typo_tolerant_match(user_value: str, song_value: str, threshold: float = 0.82) -> bool:
+    """Return True when two labels are exact or close enough under typo-tolerant matching."""
+    normalized_user = _normalize_label(user_value)
+    normalized_song = _normalize_label(song_value)
+
+    if not normalized_user or not normalized_song:
+        return False
+    if normalized_user == normalized_song:
+        return True
+
+    similarity = SequenceMatcher(None, normalized_user, normalized_song).ratio()
+    return similarity >= threshold
+
+
+def _normalize_energy(value: float) -> float:
+    """Clamp energy values to the supported [0.0, 1.0] range."""
+    return max(0.0, min(1.0, value))
 
 @dataclass
 class Song:
@@ -71,32 +97,40 @@ def load_songs(csv_path: str) -> List[Dict]:
 
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     """Score one song using genre, mood, and energy similarity against user preferences."""
+    genre_weight = 1.0
+    mood_weight = 1.0
+    energy_weight = 2.0
+
     score = 0.0
     reasons: List[str] = []
 
-    user_genre = str(user_prefs.get("genre", "")).strip().lower()
-    user_mood = str(user_prefs.get("mood", "")).strip().lower()
-    target_energy = float(user_prefs.get("energy", 0.0))
+    user_genre = str(user_prefs.get("genre", "")).strip()
+    user_mood = str(user_prefs.get("mood", "")).strip()
+    raw_target_energy = float(user_prefs.get("energy", 0.0))
+    target_energy = _normalize_energy(raw_target_energy)
 
-    song_genre = str(song.get("genre", "")).strip().lower()
-    song_mood = str(song.get("mood", "")).strip().lower()
+    song_genre = str(song.get("genre", "")).strip()
+    song_mood = str(song.get("mood", "")).strip()
     song_energy = float(song.get("energy", 0.0))
 
-    if song_genre == user_genre:
-        score += 2.0
-        reasons.append("genre match! (+2.0)")
+    if _is_typo_tolerant_match(user_genre, song_genre):
+        score += genre_weight
+        reasons.append(f"genre match (typo-tolerant)! (+{genre_weight:.1f})")
     else:
         reasons.append("genre mismatch (+0.0)")
 
-    if song_mood == user_mood:
-        score += 1.0
-        reasons.append("mood match! (+1.0)")
+    if _is_typo_tolerant_match(user_mood, song_mood):
+        score += mood_weight
+        reasons.append(f"mood match (typo-tolerant)! (+{mood_weight:.1f})")
     else:
         reasons.append("mood mismatch (+0.0)")
 
     energy_similarity = max(0.0, 1.0 - abs(target_energy - song_energy))
-    score += energy_similarity
-    reasons.append(f"energy similarity (+{energy_similarity:.2f})")
+    weighted_energy = energy_similarity * energy_weight
+    score += weighted_energy
+    reasons.append(f"energy similarity (+{weighted_energy:.2f})")
+    if target_energy != raw_target_energy:
+        reasons.append(f"user energy normalized from {raw_target_energy:.2f} to {target_energy:.2f}")
 
     return score, reasons
 

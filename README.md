@@ -77,11 +77,21 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+<!-- Use this section to document the experiments you ran. For example:
 
 - What happened when you changed the weight on genre from 2.0 to 0.5
 - What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+- How did your system behave for different types of users -->
+
+* CLI output of the first iteration of the recommender
+<img src="./images/rec_CLI.png"/>
+
+
+* A diverse varity of user profiles were tested, including edge cases. 
+
+  CLI results of the profile stress test
+<img src="./images/profiles_stress_test.png"/>
+
 
 ---
 
